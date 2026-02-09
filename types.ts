@@ -22,7 +22,7 @@ export interface Spark {
   color: string;
 }
 
-export type FireworkType = 'Chrysanthemum' | 'Peony' | 'Willow' | 'Ring' | 'Spike' | 'Palm' | 'Crossette' | 'Dahlia' | 'Kamuro' | 'Brocade';
+export type FireworkType = 'Chrysanthemum' | 'Peony' | 'Willow' | 'Spike' | 'Palm' | 'Crossette' | 'Dahlia' | 'Kamuro' | 'Brocade';
 
 export interface Firework {
   x: number;

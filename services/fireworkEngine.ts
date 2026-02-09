@@ -30,7 +30,7 @@ export class FireworkEngine {
 
   createFirework(x: number, y: number, sizeMultiplier: number = 1.0, type?: FireworkType): Firework {
     const color = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
-    const types: FireworkType[] = ['Chrysanthemum', 'Peony', 'Willow', 'Ring', 'Spike', 'Palm', 'Crossette', 'Dahlia', 'Kamuro', 'Brocade'];
+    const types: FireworkType[] = ['Chrysanthemum', 'Peony', 'Willow', 'Spike', 'Palm', 'Crossette', 'Dahlia', 'Kamuro', 'Brocade'];
     const fireworkType: FireworkType = type || types[Math.floor(Math.random() * types.length)];
     
     return {
@@ -239,11 +239,7 @@ export class FireworkEngine {
       let decay = (0.015 + Math.random() * 0.01) / (0.5 + power * 0.5);
       let size = (Math.random() * 2 + 1) * Math.sqrt(power);
 
-      if (fw.type === 'Ring') {
-        speed = 6 * power; 
-        friction = 0.97;
-        decay = 0.01 / power;
-      } else if (fw.type === 'Spike') {
+      if (fw.type === 'Spike') {
         speed = (Math.random() * 12 + 8) * (0.5 + power * 0.5);
         friction = 0.92;
         gravity = 0.02;
