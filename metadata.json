@@ -1,0 +1,7 @@
+{
+  "name": "Hanabi - Japanese Zen Fireworks",
+  "description": "A beautiful, gesture-controlled firework experience using MediaPipe and React. Use your hands to launch stunning Japanese-style fireworks (Chrysanthemum, Peony, Willow) into the night sky.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
