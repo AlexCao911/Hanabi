@@ -8,8 +8,8 @@ export class FireworkEngine {
   private ctx: CanvasRenderingContext2D | null = null;
   private cursor: { x: number; y: number; active: boolean } = { x: 0, y: 0, active: false };
   
-  // Charging state for visuals
-  private chargingInfo: { x: number, y: number, progress: number, active: boolean } = { x: 0, y: 0, progress: 0, active: false };
+  // Multi-hand charging states
+  private multiChargingStates: Array<{ x: number, y: number, progress: number }> = [];
 
   // Audio callbacks
   public onLaunch?: () => void;
@@ -24,8 +24,17 @@ export class FireworkEngine {
     this.cursor = { x, y, active };
   }
 
+  setMultiChargingStates(states: Array<{ x: number, y: number, progress: number }>) {
+    this.multiChargingStates = states;
+  }
+
+  // 保留旧方法以兼容
   setChargingState(x: number, y: number, progress: number, active: boolean) {
-    this.chargingInfo = { x, y, progress, active };
+    if (active) {
+      this.multiChargingStates = [{ x, y, progress }];
+    } else {
+      this.multiChargingStates = [];
+    }
   }
 
   createFirework(x: number, y: number, sizeMultiplier: number = 1.0, type?: FireworkType): Firework {
@@ -48,12 +57,14 @@ export class FireworkEngine {
 
   launch(x: number, y: number, sizeMultiplier: number = 1.0, type?: FireworkType) {
     const fw = this.createFirework(x, y, sizeMultiplier, type);
+    console.log('Launching firework:', fw.type, 'Color:', fw.color); // 调试信息
     this.fireworks.push(fw);
     this.onLaunch?.();
   }
 
   private explode(fw: Firework) {
     fw.exploded = true;
+    console.log('Exploding firework type:', fw.type); // 调试信息
     this.onExplode?.(fw.type);
     
     // Scale properties based on sizeMultiplier (charge duration)
@@ -317,30 +328,37 @@ export class FireworkEngine {
     ctx.fillStyle = 'rgba(5, 5, 16, 0.25)';
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Draw Charging Visuals (Spirit Orb)
-    if (this.chargingInfo.active) {
-      const { x, y, progress } = this.chargingInfo;
+    // Draw Multiple Charging Visuals (Spirit Orbs) - 支持多只手
+    this.multiChargingStates.forEach((chargingInfo, index) => {
+      const { x, y, progress } = chargingInfo;
       const time = Date.now() / 1000;
+      
+      // 不同的手使用不同的颜色
+      const colors = [
+        { primary: 'rgba(255, 255, 255, ', secondary: 'rgba(255, 240, 200, ', tertiary: 'rgba(255, 200, 150, ' },
+        { primary: 'rgba(200, 220, 255, ', secondary: 'rgba(180, 200, 255, ', tertiary: 'rgba(150, 180, 255, ' },
+      ];
+      const colorScheme = colors[index % colors.length];
       
       ctx.save();
       ctx.translate(x, y);
       
       // Outer pulsing ring
       ctx.beginPath();
-      const pulseSize = 60 * progress + 30 + Math.sin(time * 4) * 5;
+      const pulseSize = 60 * progress + 30 + Math.sin(time * 4 + index * Math.PI) * 5;
       ctx.arc(0, 0, pulseSize, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 * progress})`;
+      ctx.strokeStyle = `${colorScheme.primary}${0.3 * progress})`;
       ctx.lineWidth = 2;
       ctx.stroke();
 
       // Ambient swirl
-      ctx.rotate(time * 2);
+      ctx.rotate(time * 2 + index * Math.PI);
 
       // Enhanced Glow
       const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 50 * progress + 20);
-      grad.addColorStop(0, `rgba(255, 255, 255, ${0.6 * progress + 0.2})`);
-      grad.addColorStop(0.3, `rgba(255, 240, 200, ${0.4 * progress + 0.1})`);
-      grad.addColorStop(0.6, `rgba(255, 200, 150, ${0.2 * progress})`);
+      grad.addColorStop(0, `${colorScheme.primary}${0.6 * progress + 0.2})`);
+      grad.addColorStop(0.3, `${colorScheme.secondary}${0.4 * progress + 0.1})`);
+      grad.addColorStop(0.6, `${colorScheme.tertiary}${0.2 * progress})`);
       grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
       ctx.fillStyle = grad;
       ctx.beginPath();
@@ -349,14 +367,14 @@ export class FireworkEngine {
 
       // Core spirit with stronger glow
       ctx.shadowBlur = 20 * progress + 10;
-      ctx.shadowColor = '#FFFFFF';
+      ctx.shadowColor = index === 0 ? '#FFFFFF' : '#B0C4FF';
       ctx.beginPath();
       for(let i=0; i<3; i++) {
         const offset = (i * Math.PI * 2) / 3;
         const dist = 8 * progress;
-        ctx.arc(Math.cos(time * 5 + offset) * dist, Math.sin(time * 5 + offset) * dist, 4 * progress + 2, 0, Math.PI * 2);
+        ctx.arc(Math.cos(time * 5 + offset + index) * dist, Math.sin(time * 5 + offset + index) * dist, 4 * progress + 2, 0, Math.PI * 2);
       }
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = index === 0 ? '#FFFFFF' : '#B0C4FF';
       ctx.fill();
 
       // Multiple Spinning Rings
@@ -364,8 +382,8 @@ export class FireworkEngine {
         ctx.beginPath();
         const ringRadius = (20 + i * 15) * progress + 15;
         const ringProgress = (progress + i * 0.2) % 1;
-        ctx.arc(0, 0, ringRadius, time * (3 + i), time * (3 + i) + Math.PI * 2 * ringProgress);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${(0.4 + progress * 0.3) * (1 - i * 0.2)})`;
+        ctx.arc(0, 0, ringRadius, time * (3 + i) + index, time * (3 + i) + index + Math.PI * 2 * ringProgress);
+        ctx.strokeStyle = `${colorScheme.primary}${(0.4 + progress * 0.3) * (1 - i * 0.2)})`;
         ctx.lineWidth = 2;
         ctx.stroke();
       }
@@ -373,13 +391,13 @@ export class FireworkEngine {
       // Energy particles
       ctx.shadowBlur = 0;
       for(let i = 0; i < 8; i++) {
-        const angle = (i / 8) * Math.PI * 2 + time * 2;
+        const angle = (i / 8) * Math.PI * 2 + time * 2 + index;
         const radius = 25 * progress + 15;
         const px = Math.cos(angle) * radius;
         const py = Math.sin(angle) * radius;
         ctx.beginPath();
         ctx.arc(px, py, 2 * progress + 1, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${0.6 + Math.sin(time * 5 + i) * 0.4})`;
+        ctx.fillStyle = `${colorScheme.primary}${0.6 + Math.sin(time * 5 + i) * 0.4})`;
         ctx.fill();
       }
 
@@ -389,14 +407,14 @@ export class FireworkEngine {
       ctx.save();
       ctx.globalAlpha = 0.3 * progress;
       const trailGrad = ctx.createRadialGradient(x, y, 0, x, y, 80 * progress);
-      trailGrad.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+      trailGrad.addColorStop(0, `${colorScheme.primary}0.2)`);
       trailGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
       ctx.fillStyle = trailGrad;
       ctx.beginPath();
       ctx.arc(x, y, 80 * progress, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
-    }
+    });
 
     // Cursor tracking
     if (this.cursor.active) {
